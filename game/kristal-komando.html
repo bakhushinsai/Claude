@@ -111,6 +111,11 @@ button:active{filter:brightness(1.3);transform:scale(.93)}
 #bBatalTaruh{display:none;background:#4a1f16;border-color:#8a3a2a;color:#ffb4a6}
 #selInfo{position:absolute;left:8px;bottom:150px;z-index:5;display:none;align-items:center;gap:8px;
   background:rgba(16,20,14,.85);border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:13px}
+#stanceWrap{display:none;align-items:center;gap:3px;padding-left:7px;margin-left:1px;border-left:1px solid var(--line)}
+.stB{width:28px;height:28px;font-size:14px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.stB svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.stB.aktif{background:var(--amber);color:#241703;border-color:var(--amber)}
+.stB.aktif svg{stroke:#241703}
 #selInfo button{width:30px;height:30px;font-size:14px}
 
 /* Sidebar kanan gaya klasik */
@@ -328,7 +333,13 @@ button:active{filter:brightness(1.3);transform:scale(.93)}
 <button id="bSandbox" title="Sandbox" style="display:none"><svg class="isi" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg></button>
     <button id="bBatalTaruh"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>BATAL</button>
   </div>
-  <div id="selInfo"><span id="selTxt"></span><button id="selX"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div id="selInfo"><span id="selTxt"></span>
+    <div id="stanceWrap">
+      <button class="stB" data-st="agresif" title="Agresif — otomatis kejar & serang musuh terdekat">AG</button>
+      <button class="stB" data-st="bertahan" title="Bertahan — serang musuh dalam jangkauan, lalu kembali jaga pos">BT</button>
+      <button class="stB" data-st="tahan" title="Tahan Tembak — diam, tak menyerang otomatis, tunggu perintah">TT</button>
+    </div>
+    <button id="selX"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
   <canvas id="mm" width="132" height="132"></canvas>
   <div id="sb">
     <div id="sbTabs"><button id="tabB" class="aktif">BANGUNAN</button><button id="tabU">PASUKAN</button></div>
@@ -1021,7 +1032,7 @@ function spawnUnit(sisi,type,x,y){
   const e={id:G.nextId++, sisi:sisi, jenis:'u', type:type,
     x:x,y:y, hp:d.hp,maxhp:d.hp, r:d.r, hit:0,
     mode:'jaga', jalan:null, ji:0, tgt:0, cool:0, rp:0, scan:acak(0,.3),
-    hunt:false, balik:null, arah:acak(0,6.28), flash:0,
+    hunt:false, balik:null, arah:acak(0,6.28), flash:0, stance:'bertahan',
     xp:0, pangkat:0,
     muat:0, hFase:'cari', hUbin:-1, hT:0, txl:-1,tyl:-1, tersembunyi:!!d.siluman};
   G.ents.push(e);
@@ -1384,8 +1395,8 @@ function updateUnit(u,dt){
       return;
     }
     const p=titikTarget(u,t), dd=jrk(u.x,u.y,p.x,p.y);
-    // rantai kejar (hanya target otomatis)
-    if(u.balik && jrk(u.x,u.y,u.balik.x,u.balik.y)>7*T){
+    // rantai kejar (hanya target otomatis) — unit Agresif tak ditarik pulang, terus mengejar
+    if(u.stance!=='agresif' && u.balik && jrk(u.x,u.y,u.balik.x,u.balik.y)>7*T){
       u.tgt=0; perintahJalan(u,u.balik.x,u.balik.y); u.balik=null; return;
     }
     // INSINYUR: mendekat lalu merebut bangunan (bukan menembak)
@@ -1426,7 +1437,7 @@ function updateUnit(u,dt){
   }
 
   if(u.mode==='jalan'){
-    if(u.balik&&u.scan<=0&&u.type!=='insinyur'){
+    if(u.balik&&u.scan<=0&&u.type!=='insinyur'&&u.stance!=='tahan'){
       u.scan=0.35;
       const t=cariMusuhDekat(u,(d.rng*bonusTinggi(u.x,u.y)+1.6)*T);
       if(t){perintahSerang(u,t,false,true);return;}
@@ -1436,12 +1447,14 @@ function updateUnit(u,dt){
   }
 
   if(u.type==='insinyur') return; // insinyur tak memindai/menyerang otomatis
+  if(u.stance==='tahan') return; // Tahan Tembak: tak pernah memindai/menyerang sendiri, hanya lewat perintah manual
 
-  // jaga: pindai musuh
+  // jaga: pindai musuh (jangkauan pindai Agresif jauh lebih lebar)
   if(u.scan<=0){
     u.scan=0.35;
-    const t=cariMusuhDekat(u,(d.rng*bonusTinggi(u.x,u.y)+1.6)*T)||(u.balik?musuhDekatTitik(u,u.balik,6*T):null);
-    if(t){ if(!u.balik)u.balik={x:u.x,y:u.y}; perintahSerang(u,t,false,true); return; }
+    const bonusPindai=u.stance==='agresif'?5:1.6;
+    const t=cariMusuhDekat(u,(d.rng*bonusTinggi(u.x,u.y)+bonusPindai)*T)||(u.balik?musuhDekatTitik(u,u.balik,6*T):null);
+    if(t){ if(!u.balik)u.balik={x:u.x,y:u.y}; perintahSerang(u,t,false,true); if(u.stance==='agresif')u.hunt=true; return; }
     if(u.balik&&jrk(u.x,u.y,u.balik.x,u.balik.y)>3*T){
       u.jalan = UDEF[u.type].udara ? [{x:u.balik.x,y:u.balik.y}] : jalur((u.x/T)|0,(u.y/T)|0,(u.balik.x/T)|0,(u.balik.y/T)|0);
       u.ji=0;u.mode='jalan';
@@ -3325,6 +3338,12 @@ function segarkanUI(){
     const e0=ent(G.sel[0]);
     el('selTxt').textContent=G.sel.length>1?(G.sel.length+' unit dipilih'):
       (e0?(e0.jenis==='b'?BDEF[e0.type].nama:UDEF[e0.type].nama):'\u2014');
+    const petarung=unitPetarungTerpilih();
+    if(petarung.length){
+      el('stanceWrap').style.display='inline-flex';
+      const sama=petarung.every(u=>u.stance===petarung[0].stance)?petarung[0].stance:null;
+      document.querySelectorAll('.stB').forEach(b=>b.classList.toggle('aktif',b.dataset.st===sama));
+    } else el('stanceWrap').style.display='none';
   }else el('selInfo').style.display='none';
   for(const k in sbBtn){
     const s=sbBtn[k],c=s.root;
@@ -3390,7 +3409,7 @@ function serialisasi(){
     }else{
       ents.push({j:0,id:e.id,s:e.sisi,t:e.type,x:Math.round(e.x),y:Math.round(e.y),hp:Math.round(e.hp),
         m:e.mode,hf:e.hFase,mu:Math.round(e.muat||0),hu:e.hUbin,hn:e.hunt?1:0,tg:e.tgt||0,
-        xp:e.xp||0,pk:e.pangkat||0,
+        xp:e.xp||0,pk:e.pangkat||0,st:e.stance||'bertahan',
         bl:e.balik?[Math.round(e.balik.x),Math.round(e.balik.y)]:0});
     }
   }
@@ -3485,7 +3504,7 @@ function muatDariData(d){
     e.xp=sn.xp||0; e.pangkat=sn.pk||0;
     if(e.pangkat>0) e.maxhp=Math.round(UDEF[sn.t].hp*(1+e.pangkat*0.28));
     e.hp=sn.hp;
-    e.hunt=!!sn.hn;e.tgt=sn.tg||0;
+    e.hunt=!!sn.hn;e.tgt=sn.tg||0;e.stance=sn.st||'bertahan';
     e.balik=sn.bl?{x:sn.bl[0],y:sn.bl[1]}:null;
     if(sn.t==='penambang'){
       e.mode='panen';
@@ -3652,6 +3671,23 @@ el('bUlang').addEventListener('click',()=>{
   else{ulangTunggu=now;pesan('Tap \u21BB sekali lagi untuk mengulang misi');}
 });
 el('bBatalTaruh').addEventListener('click',()=>{batalAntri(P,'qB');keluarModeTaruh();});
+function unitPetarungTerpilih(){
+  if(!G)return[];
+  const out=[];
+  for(const id of G.sel){
+    const e=ent(id);
+    if(e&&e.jenis==='u'&&UDEF[e.type].dmg>0) out.push(e);
+  }
+  return out;
+}
+document.querySelectorAll('.stB').forEach(b=>b.addEventListener('click',()=>{
+  const st=b.dataset.st, us=unitPetarungTerpilih();
+  for(const u of us){
+    u.stance=st;
+    if(st==='tahan'){ u.balik=null; u.hunt=false; } // lepas status kejar-otomatis, serangan manual yg sedang jalan tak terganggu
+  }
+  segarkanUI(); sfx('klik');
+}));
 el('selX').addEventListener('click',()=>{if(G)G.sel=[];});
 el('psTutup').addEventListener('click',tutupPanelSimpan);
 el('btnLanjut').addEventListener('click',()=>bukaPanelSimpan('menu'));
